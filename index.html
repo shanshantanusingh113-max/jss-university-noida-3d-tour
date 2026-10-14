@@ -204,7 +204,7 @@ const STOPS=[
   body:'The centre of the campus is open playing fields. A full-size football ground lies to the north. A line of trees separates it from the cricket ground to the south, and the basketball courts are on the east side.',
   facts:[['Outdoor','Football, cricket, basketball, tennis'],['Indoor','Table tennis, badminton, gym'],['Events','Sports and cultural fests through the year']],
   src:[S.map,S.infra,S.hostel],q:'JSSATE Noida cricket ground'},
- {name:'Central Academic Block',short:'Central block',kicker:'Teaching',acc:['traced','Footprint traced from satellite'],at:[0,9,142],cam:[14,50,84],r:46,
+ {name:'Central Academic Block',short:'Central block',kicker:'Teaching',acc:['traced','Footprint traced from satellite'],at:[0,9,142],cam:[34,78,62],r:46,
   body:'South of the drive, two wings of this block spread out in a V and meet at a glazed hub. Arcades open onto a paved courtyard between them. Lecture halls have podiums and presentation equipment, and classrooms have projectors, internet access and whiteboards.',
   facts:[['Academic blocks','5 across campus'],['Schools','Engineering · Computer Applications · Management · Applied Sciences · Humanities'],['Programmes','B.Tech, M.Tech, MCA, MBA, M.Sc, MA, PhD']],
   src:[S.map,S.infra,S.jobs],q:'JSSATE Noida academic block'},
@@ -608,8 +608,9 @@ function frame(now){
   controls.update();sky.position.copy(camera.position);
   if(!reduce)hl.scale.setScalar(STOPS[cur].r*(1+Math.sin(now/500)*.03));
   const az=Math.atan2(camera.position.x-controls.target.x,camera.position.z-controls.target.z);needle.style.transform='rotate('+(az*180/Math.PI)+'deg)';
+  const far=camera.position.distanceTo(controls.target)>190;
   STOPS.forEach((s,i)=>{v.set(s.at[0],s.at[1]+10,s.at[2]).project(camera);const p=pins[i];
-    if(v.z>1||Math.abs(v.x)>1.1||Math.abs(v.y)>1.1){p.hidden=true;return;}p.hidden=false;
+    if((!far&&i!==cur)||v.z>1||Math.abs(v.x)>1.1||Math.abs(v.y)>1.1){p.hidden=true;return;}p.hidden=false;
     p.style.transform='translate('+((v.x+1)/2*innerWidth)+'px,'+((1-v.y)/2*innerHeight)+'px) translate(-50%,-100%)';p.style.zIndex=i===cur?2:1;});
   renderer.render(scene,camera);requestAnimationFrame(frame);}
 go(0,true);camera.position.set(330,300,440);controls.target.set(5,0,30);
