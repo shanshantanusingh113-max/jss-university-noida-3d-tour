@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JSS University Noida 3D Tour</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed dusk campus model, title card top-left, stop sheet right (bottom on phones), numbered stop rail along the bottom */
+:root{
+  --night:#0e1822;
+  --panel:rgba(14,24,34,.88);
+  --panel-solid:#132230;
+  --ink:#edf1f4;
+  --muted:#9aabb9;
+  --line:rgba(237,241,244,.13);
+  --saffron:#f0a23b;
+  --saffron-ink:#1b1206;
+  --leaf:#7fb08a;
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#scene{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#scene:active{cursor:grabbing}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
+
+.title{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));
+  max-width:min(360px,calc(100vw - 32px));pointer-events:none;z-index:3}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--saffron)}
+.title h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,40px);line-height:1;margin:6px 0 4px;text-wrap:balance;letter-spacing:-.01em}
+.title p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+
+.tools{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:8px;z-index:4}
+.chip-btn{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;backdrop-filter:blur(8px);display:flex;align-items:center;gap:6px}
+.chip-btn:hover{border-color:rgba(240,162,59,.6)}
+.chip-btn[aria-pressed="true"]{background:var(--saffron);color:var(--saffron-ink);border-color:var(--saffron)}
+
+.sheet{position:fixed;z-index:3;top:calc(70px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));
+  width:min(380px,calc(100vw - 32px));max-height:calc(100% - 180px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(12px);
+  display:flex;flex-direction:column;overflow:hidden}
+.sheet-head{padding:18px 20px 0;display:flex;flex-direction:column;gap:6px}
+.stopno{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.stopno b{color:var(--saffron);font-weight:500}
+.sheet h2{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.05;margin:2px 0 0;text-wrap:balance}
+.sheet-body{padding:12px 20px 4px;overflow-y:auto;min-height:0}
+.sheet-body p{margin:0 0 14px;line-height:1.55;font-size:14px;color:#d6dde3;max-width:65ch}
+dl{margin:0 0 12px;display:grid;grid-template-columns:auto 1fr;border-top:1px solid var(--line)}
+dt,dd{padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+dt{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-right:14px;padding-top:10px}
+dd{margin:0;font-variant-numeric:tabular-nums;min-width:0}
+.src{font-size:11.5px;color:var(--muted);line-height:1.5;margin:4px 0 14px}
+.src a{color:var(--muted)}
+.sheet-nav{display:flex;gap:8px;padding:12px 20px 16px;border-top:1px solid var(--line)}
+.nav-btn{flex:1;border:1px solid var(--line);background:transparent;border-radius:10px;padding:10px 12px;cursor:pointer;font-size:14px}
+.nav-btn.primary{background:var(--saffron);border-color:var(--saffron);color:var(--saffron-ink);font-weight:600}
+.nav-btn:disabled{opacity:.4;cursor:default}
+
+.rail{position:fixed;z-index:3;left:0;right:0;bottom:0;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.hint{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.stops{display:flex;gap:6px;overflow-x:auto;pointer-events:auto;scrollbar-width:none;padding-bottom:2px}
+.stops::-webkit-scrollbar{display:none}
+.stop{flex:none;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 6px;cursor:pointer;font-size:13px;white-space:nowrap;backdrop-filter:blur(8px)}
+.stop span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(237,241,244,.1);font-family:var(--mono);font-size:11px}
+.stop[aria-current="true"]{border-color:var(--saffron)}
+.stop[aria-current="true"] span{background:var(--saffron);color:var(--saffron-ink)}
+
+.pins{position:fixed;inset:0;pointer-events:none;z-index:2}
+.pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.pin .tag{display:flex;align-items:center;gap:6px;background:var(--panel-solid);border:1px solid var(--line);border-radius:999px;padding:3px 9px 3px 3px;font-size:12px;white-space:nowrap}
+.pin .n{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(237,241,244,.12);font-family:var(--mono);font-size:10.5px}
+.pin .stem{width:1px;height:18px;background:linear-gradient(var(--ink),transparent)}
+.pin.on .tag{border-color:var(--saffron)}
+.pin.on .n{background:var(--saffron);color:var(--saffron-ink)}
+.pin[hidden]{display:none!important}
+
+.legend{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:calc(150px + env(safe-area-inset-top,0px));z-index:3;font-family:var(--mono);font-size:11px;color:var(--muted);display:grid;gap:4px;pointer-events:none}
+.legend div{display:flex;gap:8px;align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px}
+
+.toggle-sheet{display:none}
+@media (max-width:760px){
+  .legend,.pin .label{display:none}
+  .title p{display:none}
+  .sheet{top:auto;right:max(16px,env(safe-area-inset-right,0px));left:max(16px,env(safe-area-inset-left,0px));width:auto;
+    bottom:calc(58px + env(safe-area-inset-bottom,0px));max-height:46%}
+  .sheet.collapsed .sheet-body,.sheet.collapsed .sheet-nav{display:none}
+  .sheet-head{padding:14px 16px 0}
+  .sheet-body{padding:10px 16px 4px}
+  .sheet-nav{padding:10px 16px 12px}
+  .sheet.collapsed .sheet-head{padding-bottom:14px}
+  .sheet h2{font-size:21px}
+  .toggle-sheet{display:inline;background:none;border:0;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:0}
+  .hint{display:none}
+  .tools .lbl{display:none}
+}
+.loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:12px;color:var(--muted);z-index:1}
+</style>
+</head>
+<body>
+
+<canvas id="scene" aria-label="3D model of the JSS University Noida campus"></canvas>
+<div class="loading" id="loading">Building campus model…</div>
+<div class="pins" id="pins"></div>
+
+<header class="title">
+  <div class="eyebrow">C-20/1 · Sector 62 · Noida · 28 acres</div>
+  <h1>JSS University</h1>
+  <p>Virtual campus tour. A schematic 3D model built from published campus facts.</p>
+</header>
+
+<div class="legend" aria-hidden="true">
+  <div><i style="background:#e7e1d6"></i>Academic</div>
+  <div><i style="background:#c9b59a"></i>Residential</div>
+  <div><i style="background:#9fb7c6"></i>Services</div>
+  <div><i style="background:#4f8a55"></i>Grounds</div>
+</div>
+
+<div class="tools">
+  <button class="chip-btn" id="auto" aria-pressed="false" type="button">▶ <span class="lbl">Auto tour</span></button>
+  <button class="chip-btn" id="overview" type="button">⤢ <span class="lbl">Overview</span></button>
+</div>
+
+<aside class="sheet" id="sheet" aria-live="polite">
+  <div class="sheet-head">
+    <div class="stopno"><span>Stop <b id="sn">1</b> of <span id="st">10</span> · <span id="kicker"></span></span><button class="toggle-sheet" id="toggle" type="button">Hide</button></div>
+    <h2 id="sname"></h2>
+  </div>
+  <div class="sheet-body">
+    <p id="sbody"></p>
+    <dl id="sfacts"></dl>
+    <div class="src" id="ssrc"></div>
+  </div>
+  <div class="sheet-nav">
+    <button class="nav-btn" id="prev" type="button">← Previous</button>
+    <button class="nav-btn primary" id="next" type="button">Next stop →</button>
+  </div>
+</aside>
+
+<nav class="rail" aria-label="Tour stops">
+  <div class="hint">Drag to orbit · scroll or pinch to zoom · tap a building to visit it</div>
+  <div class="stops" id="stops"></div>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+const S = {
+  c360:'<a href="https://www.careers360.com/university/jss-university-noida" target="_blank" rel="noopener">Careers360</a>',
+  infra:'<a href="https://jssaten.ac.in/pview/infrastructure" target="_blank" rel="noopener">JSSATEN infrastructure</a>',
+  hostel:'<a href="https://jssaten.ac.in/pview/hostel" target="_blank" rel="noopener">JSSATEN hostel</a>',
+  topu:'<a href="https://www.topuniversities.com/node/4172291" target="_blank" rel="noopener">TopUniversities</a>',
+  fac:'<a href="https://www.careers360.com/university/jss-university-noida/facilities" target="_blank" rel="noopener">Careers360 facilities</a>',
+  research:'<a href="https://jssaten.ac.in/pview/research_program" target="_blank" rel="noopener">JSSATEN research</a>',
+  jobs:'<a href="https://facultytick.com/2026/06/05/jss-university-noida-teaching-faculty-recruitment-jobs-2026/" target="_blank" rel="noopener">University faculty notice 2026</a>',
+  cb:'<a href="https://www.collegebatch.com/21747-jss-university-campus-tour-noida" target="_blank" rel="noopener">CollegeBatch</a>',
+  pharm:'<a href="https://www.careers360.com/colleges/college-of-pharmacy-jss-academy-of-technical-education-noida" target="_blank" rel="noopener">Careers360 pharmacy</a>'
+};
+const STOPS = [
+ {name:'Main Gate', short:'Gate', kicker:'Arrival', at:[0,6,96], cam:[55,60,175],
+  body:'The campus sits in the institutional belt of Sector 62, Noida. It was set up by JSS Mahavidyapeetha, Mysuru, and grew out of JSS Academy of Technical Education (JSSATEN), founded here in 1998. The grounds cover about 28 acres of tree-lined lawns.',
+  facts:[['Address','C-20/1, Sector 62, Noida 201301, UP'],['Campus','About 28 acres'],['Parent body','JSS Mahavidyapeetha, Mysuru'],['Phone','0120-2401484']],
+  src:[S.c360,S.infra,S.topu]},
+ {name:'Administration Block', short:'Admin', kicker:'Front office', at:[0,18,70], cam:[-45,45,135],
+  body:'The front block faces the gate and the central lawn. JSS University operates under the U.P. Private Universities Act No. 12 of 2019 and is recognised by the UGC. It is the fourth university set up by JSS Mahavidyapeetha.',
+  facts:[['Students','4,000+ (JSSATEN figure)'],['Faculty','250+'],['Status','Private university, UGC recognised'],['Lineage','JSSATEN 1998 → JSS University']],
+  src:[S.jobs,S.c360]},
+ {name:'Academic Blocks', short:'Academic', kicker:'Teaching', at:[0,18,25], cam:[95,75,95],
+  body:'Five academic blocks frame the central lawn. Lecture halls have podiums and presentation equipment, and classrooms carry projectors, internet access and whiteboards. Seminar rooms, a multipurpose hall and conference rooms sit in the same blocks.',
+  facts:[['Blocks','5'],['Schools','Engineering · Computer Applications · Management · Applied Sciences · Humanities'],['Programmes','B.Tech, M.Tech, MCA, MBA, M.Sc, MA, PhD'],['B.Tech streams','CSE, CSE-AIML, CSE-DS, IT, ECE, Civil and more']],
+  src:[S.infra,S.cb,S.jobs]},
+ {name:'Central Library', short:'Library', kicker:'Study', at:[0,14,22], cam:[30,32,62],
+  body:'The library and information centre is fully automated and air-conditioned. Its e-resources can be reached on or off campus, over wired and wireless networks. The library also runs orientation sessions on research techniques.',
+  facts:[['Floor area','1,260 m²'],['Climate','Air-conditioned'],['Catalogue','Fully automated'],['E-resources','On and off campus']],
+  src:[S.infra]},
+ {name:'College of Pharmacy', short:'Pharmacy', kicker:'Health sciences', at:[-105,14,30], cam:[-160,55,85],
+  body:'The College of Pharmacy is approved by the Pharmacy Council of India. It runs a four-year B.Pharm, a D.Pharm diploma and postgraduate pharmacy study.',
+  facts:[['Approval','Pharmacy Council of India'],['Courses','B.Pharm (4 yrs), D.Pharm, M.Pharm'],['Departments','Pharmacology, Pharmaceutics, Regulatory Affairs, Pharmaceutical Analysis']],
+  src:[S.pharm,S.jobs]},
+ {name:'Research & JSS STEP', short:'Research', kicker:'Innovation', at:[105,12,30], cam:[165,55,85],
+  body:'Research centres back the doctoral programme, and the JSS Science & Technology Entrepreneurs Park (JSS STEP) supports start-ups. Labs run tools such as Cadence and MATLAB, and industry MoUs cover internships and joint projects.',
+  facts:[['Research centres','Electronics, Physics, Chemistry, Maths (2013); Mechanical (2016)'],['Incubator','JSS STEP'],['Industry MoUs','Edunet Foundation, Innogress, The IoT Academy']],
+  src:[S.research,S.topu]},
+ {name:'Sports Grounds', short:'Sports', kicker:'Play', at:[0,4,-55], cam:[0,95,30],
+  body:'The north side of the campus opens into playing fields. There is a cricket ground and a football ground, with tennis and basketball courts close by. A gym serves students who want indoor training.',
+  facts:[['Outdoor','Cricket, football, tennis, basketball'],['Indoor','Table tennis, badminton, gym'],['Events','Sports and cultural fests through the year']],
+  src:[S.infra,S.hostel]},
+ {name:'Boys’ Hostel', short:'Boys hostel', kicker:'Living', at:[-112,14,-76], cam:[-150,60,-10],
+  body:'Rooms come furnished with beds, wardrobes, study tables and chairs, on a shared basis. Air-conditioned rooms can be requested. The hostel has a dining hall, TV room, gym and Wi-Fi, with power back-up and round-the-clock security.',
+  facts:[['Capacity','700'],['Rooms','Multi-sharing, AC on request'],['Common areas','Dining hall, TV room, gym, visitors’ room']],
+  src:[S.hostel]},
+ {name:'Girls’ Hostel', short:'Girls hostel', kicker:'Living', at:[112,14,-76], cam:[150,60,-10],
+  body:'The girls’ hostel sits inside the campus walls and gives every student a single room. It shares the same amenities as the boys’ hostel, including a recreation room, indoor games and security around the clock.',
+  facts:[['Capacity','700'],['Rooms','Single rooms'],['Amenities','Recreation room, gym, Wi-Fi, water purifiers']],
+  src:[S.infra,S.hostel]},
+ {name:'Student Services', short:'Services', kicker:'Daily life', at:[-108,8,-18], cam:[-60,45,40],
+  body:'Day-to-day needs are covered on campus. A cafeteria serves meals, a convenience store handles stationery and photocopying, and a health centre offers first aid. There is a bank ATM, and a guest house for visiting parents and faculty sits across the campus.',
+  facts:[['Food','Cafeteria / canteen'],['Money','Bank ATM'],['Health','Health centre with first aid'],['Connectivity','Wi-Fi across campus'],['Visitors','Guest house on campus']],
+  src:[S.fac,S.cb]}
+];
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas = document.getElementById('scene');
+if(!window.THREE){document.getElementById('loading').textContent='The 3D engine could not load. Check your connection and reload.';return;}
+
+const renderer = new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e1822);
+scene.fog = new THREE.Fog(0x0e1822, 260, 620);
+const camera = new THREE.PerspectiveCamera(42,1,1,2000);
+camera.position.set(170,190,260);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08;
+controls.maxPolarAngle = Math.PI*0.47; controls.minDistance = 30; controls.maxDistance = 460;
+controls.target.set(0,0,10);
+
+// Lights: dusk
+scene.add(new THREE.HemisphereLight(0x9fb8d6, 0x2a2418, 0.75));
+const sun = new THREE.DirectionalLight(0xffc98a, 1.05);
+sun.position.set(-160,180,90); sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-190,right:190,top:150,bottom:-150,near:10,far:600});
+scene.add(sun);
+
+// Helpers
+function canvasTex(w,h,draw,rx,ry){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;if(rx){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry)}return t;}
+function mat(color,o){return new THREE.MeshStandardMaterial(Object.assign({color,roughness:.9,metalness:0},o||{}));}
+function flat(w,d,color,x,z,y,map){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),map?mat(0xffffff,{map}):mat(color));m.rotation.x=-Math.PI/2;m.position.set(x,y||0.05,z);m.receiveShadow=true;scene.add(m);return m;}
+
+// Ground
+flat(1400,1400,0x17222c,0,0,-0.2);
+flat(300,220,0x2c4532,0,0,0);
+// boundary wall
+const wallM = mat(0x8c8476);
+[[0,-110,300,1.2],[0,110,300,1.2],[-150,0,1.2,220],[150,0,1.2,220]].forEach(([x,z,w,d])=>{
+  if(z===110){ [[-82,136],[82,136]].forEach(([wx,ww])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(ww,3,d),wallM);m.position.set(wx,1.5,z);m.castShadow=true;scene.add(m);}); return;}
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,3,d),wallM);m.position.set(x,1.5,z);m.castShadow=true;scene.add(m);});
+// outside road
+flat(1400,16,0x2b333b,0,122,-0.1);
+// internal roads
+const road=0x3c4650;
+flat(12,60,road,0,110-30,0.1);        // gate drive
+flat(260,9,road,0,82,0.1);            // front ring
+flat(9,170,road,-82,0,0.1); flat(9,170,road,82,0,0.1);
+flat(170,9,road,0,-28,0.1);
+flat(9,30,road,-130,-50,0.1); flat(9,30,road,130,-50,0.1);
+// central lawn path
+flat(4,30,0x8a7f6c,0,52,0.12);
+
+// Facade texture
+function facade(base,win,cols,rows){return canvasTex(256,256,(g,w,h)=>{
+  g.fillStyle=base;g.fillRect(0,0,w,h);
+  const cw=w/cols,rh=h/rows;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const lit=Math.random()<.62;
+    g.fillStyle=lit?win:'#2b3640';
+    g.fillRect(c*cw+cw*.18,r*rh+rh*.26,cw*.64,rh*.48);
+  }
+  g.fillStyle='rgba(0,0,0,.18)';for(let r=1;r<rows;r++)g.fillRect(0,r*rh-1,w,2);
+});}
+function emissiveMap(src){ return src; }
+
+const pickables=[]; const stopMeshes={};
+function building(stop,x,z,w,d,h,base,opts){
+  opts=opts||{};
+  const cols=Math.max(3,Math.round(w/4)), rows=Math.max(2,Math.round(h/4));
+  const tx=facade(base,'#ffd79a',8,4); tx.wrapS=tx.wrapT=THREE.RepeatWrapping;
+  const sideX=tx.clone(); sideX.needsUpdate=true; sideX.repeat.set(w/32,h/16);
+  const sideZ=tx.clone(); sideZ.needsUpdate=true; sideZ.repeat.set(d/32,h/16);
+  const roof=mat(new THREE.Color(base).multiplyScalar(.82));
+  const mk=(t)=>new THREE.MeshStandardMaterial({map:t,emissiveMap:t,emissive:0xffb55c,emissiveIntensity:.35,roughness:.85});
+  const mats=[mk(sideZ),mk(sideZ),roof,roof,mk(sideX),mk(sideX)];
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats);
+  m.position.set(x,h/2,z);m.castShadow=m.receiveShadow=true;
+  scene.add(m);
+  if(stop!=null){m.userData.stop=stop;pickables.push(m);(stopMeshes[stop]=stopMeshes[stop]||[]).push(m);}
+  // parapet band
+  const band=new THREE.Mesh(new THREE.BoxGeometry(w+.6,1,d+.6),mat(opts.band||0x6b5a46));
+  band.position.set(x,h+.5,z);band.castShadow=true;scene.add(band);
+  if(stop!=null){band.userData.stop=stop;pickables.push(band);}
+  return m;
+}
+const ACAD='#e7e1d6', RES='#c9b59a', SERV='#9fb7c6';
+
+// 1 gate
+const saff=mat(0xf0a23b,{emissive:0x5a3200,emissiveIntensity:.4});
+[-10,10].forEach(px=>{const p=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),mat(0xe7e1d6));p.position.set(px,6,110);p.castShadow=true;p.userData.stop=0;pickables.push(p);scene.add(p);});
+const beam=new THREE.Mesh(new THREE.BoxGeometry(26,3,4.5),saff);beam.position.set(0,13,110);beam.castShadow=true;beam.userData.stop=0;pickables.push(beam);scene.add(beam);
+stopMeshes[0]=[beam];
+// 2 admin
+building(1,0,68,64,14,18,ACAD,{band:0xf0a23b});
+// 3 academic blocks (5)
+[[-48,46],[-48,12],[48,46],[48,12]].forEach(([x,z])=>building(2,x,z,40,14,22,ACAD));
+building(2,0,-10,60,14,22,ACAD);
+// 4 library: drum
+const drumT=facade('#d9d2c4','#ffd79a',12,3);drumT.wrapS=THREE.RepeatWrapping;drumT.repeat.set(2,1);
+const drum=new THREE.Mesh(new THREE.CylinderGeometry(11,11,16,40,1),[new THREE.MeshStandardMaterial({map:drumT,emissiveMap:drumT,emissive:0xffb55c,emissiveIntensity:.4,roughness:.8}),mat(0xb9b2a5),mat(0xb9b2a5)]);
+drum.position.set(0,8,26);drum.castShadow=drum.receiveShadow=true;drum.userData.stop=3;pickables.push(drum);scene.add(drum);
+const dome=new THREE.Mesh(new THREE.SphereGeometry(8,32,16,0,Math.PI*2,0,Math.PI/2),saff);dome.position.set(0,16,26);dome.userData.stop=3;pickables.push(dome);scene.add(dome);
+stopMeshes[3]=[drum,dome];
+// 5 pharmacy
+building(4,-112,30,28,32,18,ACAD);
+// 6 research
+building(5,112,32,26,26,14,SERV);
+building(5,112,10,18,10,8,SERV);
+// 10 services + guest house
+building(9,-112,-14,30,18,8,SERV);
+building(9,112,-14,24,16,10,RES,{band:0x8a6b4b});
+
+// 7 sports
+const footT=canvasTex(512,330,(g,w,h)=>{g.fillStyle='#4f8a55';g.fillRect(0,0,w,h);for(let i=0;i<8;i++){g.fillStyle=i%2?'#4a8350':'#549059';g.fillRect(i*w/8,0,w/8,h)}g.strokeStyle='#e9efe6';g.lineWidth=4;g.strokeRect(14,14,w-28,h-28);g.beginPath();g.moveTo(w/2,14);g.lineTo(w/2,h-14);g.stroke();g.beginPath();g.arc(w/2,h/2,44,0,7);g.stroke();g.strokeRect(14,h/2-70,70,140);g.strokeRect(w-84,h/2-70,70,140);});
+const foot=flat(46,30,0,-46,-62,0.15,footT); foot.userData.stop=6; pickables.push(foot);
+const oval=new THREE.Mesh(new THREE.CircleGeometry(26,64),mat(0x58945c));oval.rotation.x=-Math.PI/2;oval.position.set(18,0.14,-64);oval.receiveShadow=true;oval.userData.stop=6;pickables.push(oval);scene.add(oval);
+const ring=new THREE.Mesh(new THREE.RingGeometry(25.4,26,64),mat(0xe9efe6));ring.rotation.x=-Math.PI/2;ring.position.set(18,0.18,-64);scene.add(ring);
+flat(3,14,0xc7ae7d,18,-64,0.2);
+const courtT=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#2f6b6a';g.fillRect(0,0,w,h);g.strokeStyle='#e9efe6';g.lineWidth=4;g.strokeRect(20,20,w-40,h-40);g.beginPath();g.moveTo(20,h/2);g.lineTo(w-20,h/2);g.stroke();g.beginPath();g.moveTo(w/2,50);g.lineTo(w/2,h-50);g.stroke();});
+[[60,-52],[60,-72]].forEach(([x,z])=>{const c=flat(16,16,0,x,z,0.15,courtT);c.userData.stop=6;pickables.push(c);});
+const bballT=canvasTex(256,180,(g,w,h)=>{g.fillStyle='#8a5634';g.fillRect(0,0,w,h);g.strokeStyle='#f1e6d6';g.lineWidth=4;g.strokeRect(10,10,w-20,h-20);g.beginPath();g.moveTo(w/2,10);g.lineTo(w/2,h-10);g.stroke();g.beginPath();g.arc(w/2,h/2,26,0,7);g.stroke();});
+const bb=flat(18,12,0,-46,-90,0.15,bballT); bb.userData.stop=6; pickables.push(bb);
+stopMeshes[6]=[foot,oval];
+
+// 8/9 hostels: L-shaped
+function hostel(stop,x,sign){
+  building(stop,x,-80,30,16,22,RES,{band:0x8a6b4b});
+  building(stop,x-sign*9,-62,12,22,18,RES,{band:0x8a6b4b});
+}
+hostel(7,-112,1); hostel(8,112,-1);
+
+// Trees (instanced)
+const blocked=[[-34,34,60,76],[-70,70,-20,56],[-128,-96,10,48],[96,128,0,46],[-130,-94,-26,-4],[98,128,-24,-4],[-72,46,-94,-36],[50,72,-82,-42],[-130,-94,-94,-48],[94,130,-94,-48],[-15,15,40,110]];
+const roadsX=[[-87,-77],[77,87]], roadsZ=[[77,87],[-33,-23]];
+function free(x,z){if(blocked.some(([a,b,c,d])=>x>a-3&&x<b+3&&z>c-3&&z<d+3))return false;if(roadsX.some(([a,b])=>x>a-2&&x<b+2&&z>-85&&z<85))return false;if(roadsZ.some(([a,b])=>z>a-2&&z<b+2))return false;return true;}
+const trees=[];let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+for(let x=-142;x<=142;x+=9){trees.push([x,-104],[x,104]);} for(let z=-96;z<=96;z+=9){trees.push([-144,z],[144,z]);}
+for(let i=0;i<700&&trees.length<330;i++){const x=-140+rnd()*280,z=-100+rnd()*200;if(free(x,z))trees.push([x,z]);}
+const tf=trees.filter(([x,z])=>!(Math.abs(x)<16&&z>100));
+const canopy=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),mat(0x2f5a36),tf.length);
+const trunk=new THREE.InstancedMesh(new THREE.CylinderGeometry(.35,.45,1,6),mat(0x4b3a2a),tf.length);
+canopy.castShadow=true;trunk.castShadow=true;
+const d=new THREE.Object3D();const cc=new THREE.Color();
+tf.forEach(([x,z],i)=>{const s=2.6+rnd()*2.4;d.position.set(x,3.2+s*.7,z);d.scale.set(s,s*1.15,s);d.rotation.y=rnd()*6;d.updateMatrix();canopy.setMatrixAt(i,d.matrix);
+  cc.setHSL(.3+rnd()*.06,.32+rnd()*.15,.2+rnd()*.08);canopy.setColorAt(i,cc);
+  d.position.set(x,1.6,z);d.scale.set(1,3.2,1);d.updateMatrix();trunk.setMatrixAt(i,d.matrix);});
+scene.add(canopy,trunk);
+
+// Lamp glows along gate drive
+const lampM=mat(0xffd79a,{emissive:0xffc070,emissiveIntensity:1});
+for(let z=86;z<=108;z+=7)[-8,8].forEach(x=>{const l=new THREE.Mesh(new THREE.SphereGeometry(.7,8,8),lampM);l.position.set(x,5,z);scene.add(l);const p=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,5,6),mat(0x333b42));p.position.set(x,2.5,z);scene.add(p);});
+
+// Neighbouring city blocks for context
+for(let i=0;i<70;i++){const a=rnd()*Math.PI*2,r=200+rnd()*260;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(z-122)<14)continue;const h=6+rnd()*40;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(16+rnd()*20,h,16+rnd()*20),mat(0x243240));m.position.set(x,h/2,z);scene.add(m);}
+
+// Highlight ring
+const hl=new THREE.Mesh(new THREE.RingGeometry(1,1.12,72),new THREE.MeshBasicMaterial({color:0xf0a23b,transparent:true,opacity:.85,side:THREE.DoubleSide}));
+hl.rotation.x=-Math.PI/2;hl.position.y=.3;scene.add(hl);
+const HLR=[20,36,70,16,24,24,48,22,22,24];
+
+// UI
+const $=id=>document.getElementById(id);
+const stopsEl=$('stops'), pinsEl=$('pins');
+$('st').textContent=STOPS.length;
+const chips=STOPS.map((s,i)=>{const b=document.createElement('button');b.type='button';b.className='stop';b.innerHTML='<span>'+(i+1)+'</span>'+s.short;b.onclick=()=>{stopAuto();go(i)};stopsEl.appendChild(b);return b;});
+const pins=STOPS.map((s,i)=>{const b=document.createElement('button');b.type='button';b.className='pin';b.setAttribute('aria-label','Stop '+(i+1)+': '+s.name);
+  b.innerHTML='<span class="tag"><span class="n">'+(i+1)+'</span><span class="label">'+s.short+'</span></span><span class="stem"></span>';b.onclick=()=>{stopAuto();go(i)};pinsEl.appendChild(b);return b;});
+
+let cur=0, anim=null;
+function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+function go(i,instant){
+  cur=(i+STOPS.length)%STOPS.length;const s=STOPS[cur];
+  $('sn').textContent=cur+1;$('kicker').textContent=s.kicker;$('sname').textContent=s.name;$('sbody').textContent=s.body;
+  $('sfacts').innerHTML=s.facts.map(([k,v])=>'<dt>'+k+'</dt><dd>'+v+'</dd>').join('');
+  $('ssrc').innerHTML='Sources: '+s.src.join(' · ');
+  $('prev').disabled=false;
+  $('next').textContent=cur===STOPS.length-1?'Back to start →':'Next stop →';
+  chips.forEach((c,j)=>c.setAttribute('aria-current',j===cur));
+  pins.forEach((p,j)=>p.classList.toggle('on',j===cur));
+  chips[cur].scrollIntoView({block:'nearest',inline:'center',behavior:reduce?'auto':'smooth'});
+  hl.position.set(s.at[0],.3,s.at[2]);hl.scale.setScalar(HLR[cur]);
+  const toT=new THREE.Vector3(s.at[0],s.at[1]*.4,s.at[2]), toC=new THREE.Vector3(...s.cam);
+  if(instant||reduce){controls.target.copy(toT);camera.position.copy(toC);anim=null;return;}
+  anim={t0:performance.now(),dur:1600,fT:controls.target.clone(),fC:camera.position.clone(),toT,toC};
+}
+function overview(){stopAuto();const toT=new THREE.Vector3(0,0,0),toC=new THREE.Vector3(170,200,250);
+  if(reduce){controls.target.copy(toT);camera.position.copy(toC);return;}
+  anim={t0:performance.now(),dur:1600,fT:controls.target.clone(),fC:camera.position.clone(),toT,toC};}
+$('next').onclick=()=>{stopAuto();go(cur+1)};
+$('prev').onclick=()=>{stopAuto();go(cur-1)};
+$('overview').onclick=overview;
+$('toggle').onclick=()=>{const s=$('sheet');const c=s.classList.toggle('collapsed');$('toggle').textContent=c?'Show':'Hide';};
+
+let autoTimer=null;
+function stopAuto(){if(autoTimer){clearInterval(autoTimer);autoTimer=null;}$('auto').setAttribute('aria-pressed','false');$('auto').firstChild.textContent='▶ ';}
+$('auto').onclick=()=>{if(autoTimer){stopAuto();return;}$('auto').setAttribute('aria-pressed','true');$('auto').firstChild.textContent='❚❚ ';go(cur+1);autoTimer=setInterval(()=>go(cur+1),7000);};
+controls.addEventListener('start',()=>{anim=null;});
+
+// Picking
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let down=null;
+canvas.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY]});
+canvas.addEventListener('pointerup',e=>{if(!down)return;const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]);down=null;if(moved>6)return;
+  const r=canvas.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mouse,camera);
+  const hit=ray.intersectObjects(pickables,false)[0];if(hit&&hit.object.userData.stop!=null){stopAuto();go(hit.object.userData.stop);}});
+
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();
+
+const v=new THREE.Vector3();
+function frame(now){
+  if(anim){const t=Math.min(1,(now-anim.t0)/anim.dur),k=ease(t);controls.target.lerpVectors(anim.fT,anim.toT,k);camera.position.lerpVectors(anim.fC,anim.toC,k);if(t>=1)anim=null;}
+  controls.update();
+  if(!reduce){const p=1+Math.sin(now/500)*.04;hl.scale.setScalar(HLR[cur]*p);}
+  STOPS.forEach((s,i)=>{v.set(s.at[0],s.at[1]+8,s.at[2]).project(camera);const p=pins[i];
+    if(v.z>1||Math.abs(v.x)>1.1||Math.abs(v.y)>1.1){p.hidden=true;return;}p.hidden=false;
+    p.style.transform='translate('+((v.x+1)/2*innerWidth)+'px,'+((1-v.y)/2*innerHeight)+'px) translate(-50%,-100%)';p.style.zIndex=i===cur?2:1;});
+  renderer.render(scene,camera);requestAnimationFrame(frame);
+}
+go(0,true);
+$('loading').remove();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
