@@ -3,6 +3,9 @@
 An interactive 3D model of the JSS University campus (C-20/1, Sector 62, Noida) built with Three.js, with a 10-stop guided tour.
 
 ## Features
+- Welcome screen, clickable campus mini-map, street view at eye level, keyboard shortcuts (← → Space S D L O F ?)
+- Sky lighting and reflections, drifting clouds, raised wall detail, contact shadows, walking students, moving traffic, waving flag
+- Light UI by day, dark UI in the evening; bottom-sheet layout on phones
 - Layout traced from Google Maps satellite imagery: Main Building, College of Pharmacy, MPR Hall, football and cricket grounds, basketball courts, Academic Block 2, the V-shaped central block, Library & JSS STEP, main gate
 - Pink sandstone facades modelled on campus photos: deep-set windows with sunshades, arched ground-floor arcades, parapet lettering, glass atriums, rooftop solar panels
 - Day and evening lighting (lit windows and street lamps at night)
